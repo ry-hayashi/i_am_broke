@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Expense } from '@/lib/types';
 
 interface ExpenseRowProps {
@@ -14,6 +14,38 @@ interface ExpenseRowProps {
   onDragEnd: () => void;
   isDragOver: boolean;
   onDragOver: (index: number) => void;
+}
+
+// IME-safe text input hook
+function useIMESafeInput(value: string, onCommit: (value: string) => void) {
+  const [localValue, setLocalValue] = useState(value);
+  const composingRef = useRef(false);
+
+  // Sync from parent only when not composing
+  useEffect(() => {
+    if (!composingRef.current) {
+      setLocalValue(value);
+    }
+  }, [value]);
+
+  const onChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalValue(e.target.value);
+    if (!composingRef.current) {
+      onCommit(e.target.value);
+    }
+  }, [onCommit]);
+
+  const onCompositionStart = useCallback(() => {
+    composingRef.current = true;
+  }, []);
+
+  const onCompositionEnd = useCallback((e: React.CompositionEvent<HTMLInputElement>) => {
+    composingRef.current = false;
+    setLocalValue(e.currentTarget.value);
+    onCommit(e.currentTarget.value);
+  }, [onCommit]);
+
+  return { localValue, onChange, onCompositionStart, onCompositionEnd };
 }
 
 export default function ExpenseRow({
@@ -32,6 +64,20 @@ export default function ExpenseRow({
   const [movePos, setMovePos] = useState(false);
   const [posValue, setPosValue] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const handleLabelCommit = useCallback(
+    (newLabel: string) => {
+      onUpdate({ ...expense, label: newLabel });
+    },
+    [expense, onUpdate]
+  );
+
+  const {
+    localValue: labelValue,
+    onChange: labelOnChange,
+    onCompositionStart: labelCompStart,
+    onCompositionEnd: labelCompEnd,
+  } = useIMESafeInput(expense.label, handleLabelCommit);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -92,8 +138,10 @@ export default function ExpenseRow({
         {/* Label */}
         <input
           type="text"
-          value={expense.label}
-          onChange={(e) => onUpdate({ ...expense, label: e.target.value })}
+          value={labelValue}
+          onChange={labelOnChange}
+          onCompositionStart={labelCompStart}
+          onCompositionEnd={labelCompEnd}
           placeholder="項目名"
           className="flex-1 min-w-0 bg-transparent border-0 outline-none text-sm text-slate-800 placeholder:text-slate-300 font-medium"
         />

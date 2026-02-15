@@ -8,7 +8,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "pages:build": "npx @cloudflare/next-on-pages",
+    "pages:dev": "npx wrangler pages dev .vercel/output/static --compatibility-date=2024-07-01 --compatibility-flags=nodejs_compat"
   },
   "dependencies": {
     "next": "14.2.21",
@@ -17,6 +19,7 @@
     "idb": "^8.0.1"
   },
   "devDependencies": {
+    "@cloudflare/next-on-pages": "^1.13.0",
     "@types/node": "^20.11.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
